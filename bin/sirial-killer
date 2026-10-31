@@ -38,6 +38,49 @@ read_hotkey() {
   mods=$(field value.parameters.2)
 }
 
+# Prints "<enabled> <key> <mods>" from the window manager's live copy, which
+# macOS can change without touching the saved file. Prints nothing if the
+# private SkyLight functions are unavailable.
+read_live() {
+  osascript -l JavaScript - "$ID" 2>/dev/null <<'EOF'
+function run(argv) {
+  const id = Number(argv[0]);
+  try {
+    ObjC.import("Foundation");
+    ObjC.bindFunction("dlopen", ["void*", ["char*", "int"]]);
+    $.dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", 2);
+    ObjC.bindFunction("CGSIsSymbolicHotKeyEnabled", ["bool", ["int"]]);
+    ObjC.bindFunction("CGSGetSymbolicHotKeyValue", ["int", ["int", "unsigned short *", "unsigned short *", "unsigned int *"]]);
+    const ch = Ref(), key = Ref(), mods = Ref();
+    if ($.CGSGetSymbolicHotKeyValue(id, ch, key, mods) !== 0) return "";
+    return [$.CGSIsSymbolicHotKeyEnabled(id), key[0], mods[0]].join(" ");
+  } catch (e) {
+    return "";
+  }
+}
+EOF
+}
+
+# Prints a plain description of a hotkey state: describe <enabled> <key> <mods>
+describe() {
+  set -- "${1-}" "${2-}" "${3-}"
+  if [[ -z "$1" ]]; then
+    echo "not found"
+  elif [[ "$1" == "false" ]]; then
+    if [[ "$2" == "$F19_KEY" && "$3" == "$FN" ]]; then
+      echo "off, parked on F19"
+    else
+      echo "off, key=$2 mods=$3"
+    fi
+  elif [[ "$2" == "$SPACE_KEY" && "$3" == "$CMD_SHIFT" ]]; then
+    echo "ON, taking Cmd+Shift+Space"
+  elif [[ "$2" == "$F19_KEY" && "$3" == "$FN" ]]; then
+    echo "ON, parked on F19"
+  else
+    echo "on, key=$2 mods=$3"
+  fi
+}
+
 fix() {
   read_hotkey
 
@@ -115,18 +158,17 @@ status() {
   fi
 
   read_hotkey
-  if [[ -z "$enabled" ]]; then
-    echo "Hotkey $ID: not found"
-  elif [[ "$enabled" == "false" ]]; then
-    if [[ "$key" == "$F19_KEY" && "$mods" == "$FN" ]]; then
-      echo "Hotkey $ID: off, parked on F19"
-    else
-      echo "Hotkey $ID: off, key=$key mods=$mods"
-    fi
-  elif [[ "$key" == "$SPACE_KEY" && "$mods" == "$CMD_SHIFT" ]]; then
-    echo "Hotkey $ID: ON, taking Cmd+Shift+Space"
-  else
-    echo "Hotkey $ID: on, key=$key mods=$mods"
+  local saved live
+  saved=$(describe "$enabled" "$key" "$mods")
+  echo "Hotkey $ID (saved): $saved"
+
+  # Word-split "<enabled> <key> <mods>" into three arguments.
+  # shellcheck disable=SC2046
+  live=$(describe $(read_live))
+  if [[ "$live" == "not found" ]]; then live="unknown"; fi
+  echo "Hotkey $ID (live): $live"
+  if [[ "$live" != "unknown" && "$live" != "$saved" ]]; then
+    echo "The live setting differs from the saved one: macOS changed it without saving it."
   fi
 
   local last

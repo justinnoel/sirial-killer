@@ -109,9 +109,12 @@ When everything is working, it prints:
 
 ```text
 Background job: loaded
-Hotkey 263: off, parked on F19
+Hotkey 263 (saved): off, parked on F19
+Hotkey 263 (live): off, parked on F19
 Last turned back on by macOS: 2026-10-31 08:28:09
 ```
+
+macOS keeps two copies of each shortcut setting: the saved one, in the settings file Sirial Killer watches, and the live one, which decides what Cmd+Shift+Space does right now and is what System Settings shows. They normally match. If they don't, `status` adds a line saying so: macOS changed the live setting without saving it, so Sirial Killer couldn't see the change. If you see that, please open an issue.
 
 The last line searches the past 7 days of the system log, so it can take several seconds.
 
