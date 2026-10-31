@@ -3,8 +3,18 @@
 # taking Cmd+Shift+Space. Turns it off and parks it on F19, then reloads shortcuts.
 # Leaves hotkey 263 alone if it is bound to anything else, in case a future
 # macOS reuses the ID.
+#
+# With no arguments it runs the fix once; the LaunchAgent calls it that way.
+# `install`, `uninstall` and `status` manage that LaunchAgent.
 
 set -u
+
+readonly VERSION=1.0.0
+readonly LABEL=io.github.justinnoel.sirial-killer
+readonly PLIST=$HOME/Library/LaunchAgents/$LABEL.plist
+readonly PREFS_FILE=$HOME/Library/Preferences/com.apple.symbolichotkeys.plist
+DOMAIN=gui/$(id -u)
+readonly DOMAIN
 
 readonly ID=263
 readonly SPACE_KEY=49
@@ -18,29 +28,137 @@ log() {
   if [[ -t 1 ]]; then printf '%s\n' "$1"; fi
 }
 
-prefs=$(defaults export com.apple.symbolichotkeys - 2>/dev/null) || exit 0
-field() { printf '%s' "$prefs" | plutil -extract "AppleSymbolicHotKeys.$ID.$1" raw - 2>/dev/null; }
+# Sets enabled, key and mods from the current shortcut settings.
+read_hotkey() {
+  local prefs
+  prefs=$(defaults export com.apple.symbolichotkeys - 2>/dev/null) || prefs=
+  field() { printf '%s' "$prefs" | plutil -extract "AppleSymbolicHotKeys.$ID.$1" raw - 2>/dev/null; }
+  enabled=$(field enabled)
+  key=$(field value.parameters.1)
+  mods=$(field value.parameters.2)
+}
 
-enabled=$(field enabled)
-key=$(field value.parameters.1)
-mods=$(field value.parameters.2)
+fix() {
+  read_hotkey
 
-parked=0
-if [[ "$key" == "$F19_KEY" && "$mods" == "$FN" ]]; then parked=1; fi
+  local parked=0
+  if [[ "$key" == "$F19_KEY" && "$mods" == "$FN" ]]; then parked=1; fi
 
-if [[ "$enabled" == "false" && $parked == 1 ]]; then
-  if [[ -t 1 ]]; then printf 'Hotkey %s is already off.\n' "$ID"; fi
-  exit 0
-fi
-
-if [[ $parked == 0 && ! ("$key" == "$SPACE_KEY" && "$mods" == "$CMD_SHIFT") ]]; then
-  if [[ -n "$key" ]]; then
-    log "hotkey $ID is bound to key=$key mods=$mods, not Cmd+Shift+Space; leaving it alone"
+  if [[ "$enabled" == "false" && $parked == 1 ]]; then
+    if [[ -t 1 ]]; then printf 'Hotkey %s is already off.\n' "$ID"; fi
+    return 0
   fi
-  exit 0
-fi
 
-defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add "$ID" \
-  "<dict><key>enabled</key><false/><key>value</key><dict><key>parameters</key><array><integer>$F19_CHAR</integer><integer>$F19_KEY</integer><integer>$FN</integer></array><key>type</key><string>standard</string></dict></dict>"
-/System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
-log "re-disabled hotkey $ID (was enabled=$enabled key=$key mods=$mods)"
+  if [[ $parked == 0 && ! ("$key" == "$SPACE_KEY" && "$mods" == "$CMD_SHIFT") ]]; then
+    if [[ -n "$key" ]]; then
+      log "hotkey $ID is bound to key=$key mods=$mods, not Cmd+Shift+Space; leaving it alone"
+    fi
+    return 0
+  fi
+
+  defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add "$ID" \
+    "<dict><key>enabled</key><false/><key>value</key><dict><key>parameters</key><array><integer>$F19_CHAR</integer><integer>$F19_KEY</integer><integer>$FN</integer></array><key>type</key><string>standard</string></dict></dict>"
+  /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
+  log "re-disabled hotkey $ID (was enabled=$enabled key=$key mods=$mods)"
+}
+
+# This command's path as it was called, keeping symlinks, so a Homebrew
+# install points at /opt/homebrew/bin and survives `brew upgrade`.
+self_path() {
+  local dir
+  dir=$(cd "$(dirname "$0")" && pwd -L)
+  printf '%s/%s' "$dir" "$(basename "$0")"
+}
+
+install_agent() {
+  local self
+  self=$(self_path)
+
+  mkdir -p "$(dirname "$PLIST")"
+  cat >"$PLIST" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>$LABEL</string>
+  <key>ProgramArguments</key>
+  <array><string>$self</string></array>
+  <key>WatchPaths</key>
+  <array><string>$PREFS_FILE</string></array>
+  <key>StartInterval</key><integer>300</integer>
+  <key>RunAtLoad</key><true/>
+</dict>
+</plist>
+EOF
+  plutil -lint -s "$PLIST" || return 1
+
+  # Fix first, so the job's first run finds nothing to do and the log
+  # gets one line for the install, not two.
+  fix
+  launchctl bootout "$DOMAIN/$LABEL" 2>/dev/null || true
+  launchctl bootstrap "$DOMAIN" "$PLIST" || return 1
+
+  echo "Installed. Cmd+Shift+Space is yours again."
+}
+
+uninstall_agent() {
+  launchctl bootout "$DOMAIN/$LABEL" 2>/dev/null || true
+  rm -f "$PLIST"
+  echo "Uninstalled. Siri's shortcut stays off until you turn it back on in System Settings."
+}
+
+status() {
+  if launchctl print "$DOMAIN/$LABEL" >/dev/null 2>&1; then
+    echo "Background job: loaded"
+  else
+    echo "Background job: not loaded (run: sirial-killer install)"
+  fi
+
+  read_hotkey
+  if [[ -z "$enabled" ]]; then
+    echo "Hotkey $ID: not found"
+  elif [[ "$enabled" == "false" ]]; then
+    if [[ "$key" == "$F19_KEY" && "$mods" == "$FN" ]]; then
+      echo "Hotkey $ID: off, parked on F19"
+    else
+      echo "Hotkey $ID: off, key=$key mods=$mods"
+    fi
+  elif [[ "$key" == "$SPACE_KEY" && "$mods" == "$CMD_SHIFT" ]]; then
+    echo "Hotkey $ID: ON, taking Cmd+Shift+Space"
+  else
+    echo "Hotkey $ID: on, key=$key mods=$mods"
+  fi
+
+  local last
+  last=$(/usr/bin/log show --last 7d --style compact \
+    --predicate "process == \"logger\" AND eventMessage CONTAINS \"re-disabled hotkey $ID (was enabled=true\"" 2>/dev/null |
+    grep 're-disabled' | tail -n 1 | cut -c 1-19)
+  echo "Last turned back on by macOS: ${last:-none in the last 7 days}"
+}
+
+usage() {
+  cat <<EOF
+sirial-killer $VERSION: stop Siri from taking Cmd+Shift+Space.
+
+Usage:
+  sirial-killer              Turn Siri's shortcut off now (the background job runs this)
+  sirial-killer install      Start the background job that keeps it off
+  sirial-killer uninstall    Stop and remove the background job
+  sirial-killer status       Show the job, the shortcut and the last time macOS turned it back on
+  sirial-killer --version    Show the version
+  sirial-killer --help       Show this help
+EOF
+}
+
+case "${1-}" in
+  "") fix ;;
+  install) install_agent ;;
+  uninstall) uninstall_agent ;;
+  status) status ;;
+  --version | -v) echo "sirial-killer $VERSION" ;;
+  --help | -h) usage ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac

@@ -66,9 +66,37 @@ cd sirial-killer
 ./install.sh
 ```
 
+This copies the `sirial-killer` command to `~/Library/Scripts/sirial-killer` and runs `sirial-killer install` from there.
+
+## Commands
+
+| Command | What It Does |
+| --- | --- |
+| `sirial-killer install` | Starts the background job that keeps Siri's shortcut off. |
+| `sirial-killer uninstall` | Stops and removes the background job. |
+| `sirial-killer status` | Shows whether the job is running, whether the shortcut is off, and the last time macOS turned it back on. |
+| `sirial-killer --version` | Shows the version. |
+| `sirial-killer` | Turns the shortcut off once, right now. The background job runs this. |
+
+If you installed with `git clone`, the command is not on your PATH. Run it by its full path, for example `~/Library/Scripts/sirial-killer status`
+
 ## Check It Is Working
 
-This prints `false` when Siri's shortcut is off:
+```sh
+~/Library/Scripts/sirial-killer status
+```
+
+When everything is working, it prints:
+
+```text
+Background job: loaded
+Hotkey 263: off, parked on F19
+Last turned back on by macOS: 2026-10-31 08:28:09
+```
+
+The last line searches the past 7 days of the system log, so it can take several seconds.
+
+To check the setting directly, this prints `false` when Siri's shortcut is off:
 
 ```sh
 defaults export com.apple.symbolichotkeys - | plutil -extract AppleSymbolicHotKeys.263.enabled raw -
@@ -94,7 +122,7 @@ Count them instead:
 /usr/bin/log show --last 7d --predicate 'process == "logger" AND eventMessage CONTAINS "re-disabled hotkey 263 (was enabled=true"' --style compact | grep -c 're-disabled'
 ```
 
-The first one or two lines after you install are the tool turning the shortcut off for the first time, not macOS turning it back on.
+The first line after you install is the tool turning the shortcut off for the first time, not macOS turning it back on.
 
 macOS deletes old system log entries after a few days, so these commands only reach back that far.
 
