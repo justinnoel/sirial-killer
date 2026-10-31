@@ -65,11 +65,31 @@ This prints `false` when Siri's shortcut is off:
 defaults export com.apple.symbolichotkeys - | plutil -extract AppleSymbolicHotKeys.263.enabled raw -
 ```
 
-This lists each time macOS turned the shortcut back on and the tool turned it off:
+## See How Often macOS Turns It Back On
+
+Each time Sirial Killer turns the shortcut off, it writes a line to the macOS system log. A line containing `was enabled=true` means macOS had turned the shortcut back on:
+
+```text
+re-disabled hotkey 263 (was enabled=true key=49 mods=1179648)
+```
+
+List every time that happened in the last 7 days:
 
 ```sh
-/usr/bin/log show --last 1d --predicate 'eventMessage CONTAINS "hotkey 263"'
+/usr/bin/log show --last 7d --predicate 'process == "logger" AND eventMessage CONTAINS "re-disabled hotkey 263 (was enabled=true"' --style compact
 ```
+
+Count them instead:
+
+```sh
+/usr/bin/log show --last 7d --predicate 'process == "logger" AND eventMessage CONTAINS "re-disabled hotkey 263 (was enabled=true"' --style compact | grep -c 're-disabled'
+```
+
+The first one or two lines after you install are the tool turning the shortcut off for the first time, not macOS turning it back on.
+
+macOS deletes old system log entries after a few days, so these commands only reach back that far.
+
+Write `/usr/bin/log` in full. In zsh, the default shell on macOS, a bare `log` runs a different, built-in command and fails with `log:1: too many arguments`.
 
 ## Uninstall
 
