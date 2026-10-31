@@ -1,12 +1,12 @@
 #!/bin/bash
-# Install keep-cmd-shift-space as a per-user LaunchAgent. No sudo needed.
+# Install sirial-killer as a per-user LaunchAgent. No sudo needed.
 
 set -eu
 
-readonly LABEL=io.github.justinnoel.keep-cmd-shift-space
-SRC="$(cd "$(dirname "$0")" && pwd)/bin/keep-cmd-shift-space"
+readonly LABEL=io.github.justinnoel.sirial-killer
+SRC="$(cd "$(dirname "$0")" && pwd)/bin/sirial-killer"
 readonly SRC
-readonly BIN=$HOME/Library/Scripts/keep-cmd-shift-space
+readonly BIN=$HOME/Library/Scripts/sirial-killer
 readonly PLIST=$HOME/Library/LaunchAgents/$LABEL.plist
 DOMAIN=gui/$(id -u)
 readonly DOMAIN

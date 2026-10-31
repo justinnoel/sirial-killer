@@ -1,4 +1,6 @@
-# Keep Cmd+Shift+Space
+# Sirial Killer
+
+Get Cmd+Shift+Space back from Siri on macOS. Siri itself keeps working; only its grip on this one shortcut goes.
 
 macOS 27 added a Siri shortcut, **Ask Siri about active window**, and bound it to Cmd+Shift+Space. You can turn it off, but macOS keeps turning it back on. Each time it does, whatever you had on Cmd+Shift+Space (a launcher, a clipboard manager, your own shortcut) stops working without warning.
 
@@ -35,7 +37,7 @@ Because nothing reliably stops macOS from turning it back on, this tool does the
 
 ## How It Works
 
-A small LaunchAgent (a background job that macOS runs for your user account) watches the shortcuts file. Whenever the file changes, and every 5 minutes as a backup, it runs `keep-cmd-shift-space`, which:
+A small LaunchAgent (a background job that macOS runs for your user account) watches the shortcuts file. Whenever the file changes, and every 5 minutes as a backup, it runs `sirial-killer`, which:
 
 1. Turns shortcut `263` off.
 
@@ -50,8 +52,8 @@ It needs no `sudo`, adds no app to your menu bar, and writes only inside your ho
 ## Install
 
 ```sh
-git clone https://github.com/justinnoel/macos-command-shift-space.git
-cd macos-command-shift-space
+git clone https://github.com/justinnoel/sirial-killer.git
+cd sirial-killer
 ./install.sh
 ```
 

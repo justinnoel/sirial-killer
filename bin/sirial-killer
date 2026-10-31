@@ -14,7 +14,7 @@ readonly F19_KEY=80
 readonly FN=8388608
 
 log() {
-  logger -t keep-cmd-shift-space "$1"
+  logger -t sirial-killer "$1"
   if [[ -t 1 ]]; then printf '%s\n' "$1"; fi
 }
 
