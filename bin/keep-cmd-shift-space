@@ -1,0 +1,46 @@
+#!/bin/bash
+# Keep Siri's "Ask Siri about active window" hotkey (symbolic hotkey 263) from
+# taking Cmd+Shift+Space. Turns it off and parks it on F19, then reloads shortcuts.
+# Leaves hotkey 263 alone if it is bound to anything else, in case a future
+# macOS reuses the ID.
+
+set -u
+
+readonly ID=263
+readonly SPACE_KEY=49
+readonly CMD_SHIFT=1179648
+readonly F19_CHAR=65535
+readonly F19_KEY=80
+readonly FN=8388608
+
+log() {
+  logger -t keep-cmd-shift-space "$1"
+  if [[ -t 1 ]]; then printf '%s\n' "$1"; fi
+}
+
+prefs=$(defaults export com.apple.symbolichotkeys - 2>/dev/null) || exit 0
+field() { printf '%s' "$prefs" | plutil -extract "AppleSymbolicHotKeys.$ID.$1" raw - 2>/dev/null; }
+
+enabled=$(field enabled)
+key=$(field value.parameters.1)
+mods=$(field value.parameters.2)
+
+parked=0
+if [[ "$key" == "$F19_KEY" && "$mods" == "$FN" ]]; then parked=1; fi
+
+if [[ "$enabled" == "false" && $parked == 1 ]]; then
+  if [[ -t 1 ]]; then printf 'Hotkey %s is already off.\n' "$ID"; fi
+  exit 0
+fi
+
+if [[ $parked == 0 && ! ("$key" == "$SPACE_KEY" && "$mods" == "$CMD_SHIFT") ]]; then
+  if [[ -n "$key" ]]; then
+    log "hotkey $ID is bound to key=$key mods=$mods, not Cmd+Shift+Space; leaving it alone"
+  fi
+  exit 0
+fi
+
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add "$ID" \
+  "{ enabled = 0; value = { parameters = ($F19_CHAR, $F19_KEY, $FN); type = standard; }; }"
+/System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
+log "re-disabled hotkey $ID (was enabled=$enabled key=$key mods=$mods)"
