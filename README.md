@@ -2,6 +2,8 @@
 
 Get Cmd+Shift+Space back from Siri on macOS. Siri itself keeps working; only its grip on this one shortcut goes.
 
+> **Note:** All of this, the scripts and this README, was generated with [Claude Code](https://claude.com/claude-code), Anthropic's AI coding tool, and tested by hand on macOS 27.
+
 macOS 27 added a Siri shortcut, **Ask Siri about active window**, and bound it to Cmd+Shift+Space. You can turn it off, but macOS keeps turning it back on. Each time it does, whatever you had on Cmd+Shift+Space (a launcher, a clipboard manager, your own shortcut) stops working without warning.
 
 This tool turns Siri's shortcut back off within about a second, every time.
