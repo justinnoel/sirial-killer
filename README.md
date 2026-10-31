@@ -60,6 +60,17 @@ It needs no `sudo`, adds no app to your menu bar, and writes only inside your ho
 
 ## Install
 
+### With Homebrew
+
+```sh
+brew install justinnoel/tap/sirial-killer
+sirial-killer install
+```
+
+The first command puts `sirial-killer` on your PATH. The second starts the background job.
+
+### With Git
+
 ```sh
 git clone https://github.com/justinnoel/sirial-killer.git
 cd sirial-killer
@@ -81,6 +92,14 @@ This copies the `sirial-killer` command to `~/Library/Scripts/sirial-killer` and
 If you installed with `git clone`, the command is not on your PATH. Run it by its full path, for example `~/Library/Scripts/sirial-killer status`
 
 ## Check It Is Working
+
+If you installed with Homebrew:
+
+```sh
+sirial-killer status
+```
+
+If you installed with Git:
 
 ```sh
 ~/Library/Scripts/sirial-killer status
@@ -129,6 +148,15 @@ macOS deletes old system log entries after a few days, so these commands only re
 Write `/usr/bin/log` in full. In zsh, the default shell on macOS, a bare `log` runs a different, built-in command and fails with `log:1: too many arguments`.
 
 ## Uninstall
+
+If you installed with Homebrew, stop the background job first, because Homebrew does not stop it for you:
+
+```sh
+sirial-killer uninstall
+brew uninstall sirial-killer
+```
+
+If you installed with Git, run this from the `sirial-killer` folder:
 
 ```sh
 ./uninstall.sh
