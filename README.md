@@ -12,7 +12,11 @@ Open **System Settings › Keyboard › Keyboard Shortcuts… › Screenshots**.
 
 Every other shortcut in this screenshot was turned off by hand and stayed off. "Ask Siri about active window" was turned off too, and macOS has checked it again.
 
-Once that box is checked, macOS gets Cmd+Shift+Space before any app does, so your own shortcut never fires.
+Once that box is checked, macOS gets Cmd+Shift+Space before any app does, so your own shortcut never fires. If Siri is turned off or can't be reached, pressing Cmd+Shift+Space shows this error instead:
+
+![A macOS alert with a yellow warning triangle, titled "Siri Unavailable", saying "Unable to connect to Siri. Try again later." with a single OK button.](docs/siri-unavailable-dialog.png)
+
+If you see "Siri Unavailable" when you press Cmd+Shift+Space, this is the cause.
 
 ## Why It Happens
 
