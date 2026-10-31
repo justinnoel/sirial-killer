@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.svg">
+    <img src="docs/logo.svg" alt="Sirial Killer logo: a glowing Siri-style orb with a shocked face, glancing nervously at the word Killer" width="480">
+  </picture>
+</p>
+
 # Sirial Killer
 
 Get Cmd+Shift+Space back from Siri on macOS. Siri itself keeps working; only its grip on this one shortcut goes.
