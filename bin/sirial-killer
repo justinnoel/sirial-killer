@@ -41,6 +41,6 @@ if [[ $parked == 0 && ! ("$key" == "$SPACE_KEY" && "$mods" == "$CMD_SHIFT") ]]; 
 fi
 
 defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add "$ID" \
-  "{ enabled = 0; value = { parameters = ($F19_CHAR, $F19_KEY, $FN); type = standard; }; }"
+  "<dict><key>enabled</key><false/><key>value</key><dict><key>parameters</key><array><integer>$F19_CHAR</integer><integer>$F19_KEY</integer><integer>$FN</integer></array><key>type</key><string>standard</string></dict></dict>"
 /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
 log "re-disabled hotkey $ID (was enabled=$enabled key=$key mods=$mods)"
